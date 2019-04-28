@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>贪吃蛇</title>
+  <link rel="stylesheet" href="./reset.css">
+  <style type="text/css">
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      margin: 0;
+      height: 100vh;
+      padding: 0;
+      background-image: url(https://tympanus.net/Tutorials/CSS3SlidingImagePanels/images/bg.jpg);
+    }
+    body h1 {
+      width: 600px;
+      margin: 0px auto;
+      font-family: "BebasNeueRegular", "Arial Narrow", Arial, sans-serif;
+      font-size: 35px;
+      line-height: 35px;
+      position: relative;
+      font-weight: 400;
+      color: rgba(26, 89, 120, 0.9);
+      text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+      padding: 0px 0px 5px 0px;
+      text-align: center;
+    }
+    body .main {
+      width: 600px;
+      height: 400px;
+      position: relative;
+      border: 10px solid white;
+    }
+    body .main .bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 600px;
+      height: 400px;
+      z-index: -100;
+      background-image: url(https://tympanus.net/Tutorials/CSS3SlidingImagePanels/images/1.jpg);
+    }
+    body .level-list {
+      font-size: 18px;
+      width: 600px;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
+    body .level-list li:first-child span {
+      background-color: #9babc2;
+      color: black;
+      font-weight: 700;
+    }
+    body .level-list li span {
+      display: block;
+      width: 50px;
+      height: 50px;
+      line-height: 49px;
+      border-radius: 50%;
+      vertical-align: middle;
+      text-align: center;
+      color: #fff;
+      background-color: rgba(104, 171, 194, 0.5);
+    }
+    body .level-list li:nth-child(n+2) label span:hover {
+      background-color: #4fa2c4;
+      cursor: pointer;
+    }
+    body .level-list input {
+      display: none;
+    }
+    body .level-list input:checked ~ label span {
+      background-color: white;
+      color: #4fa2c4;
+      box-shadow: 0px 0px 0px 4px rgba(104, 171, 194, 0.6);
+    }
+    body .panel {
+      display: flex;
+      justify-content: space-between;
+      width: 600px;
+      font-size: 18px;
+    }
+    body .panel .current {
+      padding-top: 5px;
+      font-weight: 600;
+      width: 242px;
+    }
+    body .panel .max-text {
+      margin-right: 30px;
+      opacity: 0.5;
+    }
+    body .panel .max {
+      padding-top: 5px;
+      font-weight: 600;
+      width: 242px;
+    }
+    body .panel .current-text {
+      margin-right: 30px;
+      opacity: 0.5;
+    }
+    body .panel .button {
+      overflow: hidden;
+    }
+    body .panel .button #start {
+      float: left;
+      border: 1px solid white;
+      padding: 5px;
+      border-radius: 5px;
+      background-color: rgba(104, 171, 194, 0.5);
+      cursor: pointer;
+    }
+    body .panel .button #pause {
+      float: right;
+      margin-left: 20px;
+      border: 1px solid white;
+      padding: 5px;
+      border-radius: 5px;
+      background-color: rgba(104, 171, 194, 0.5);
+      cursor: pointer;
+    }
+    body .panel .button #continue {
+      float: right;
+      margin-left: 20px;
+      border: 1px solid white;
+      padding: 5px;
+      border-radius: 5px;
+      background-color: rgba(104, 171, 194, 0.5);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>贪吃蛇</h1>
+  <div class="main">
+    <div class="bg"></div>
+    <canvas id='canvas' width="600" height="400" style="background-color: transparent;">对不起，您的浏览器不支持canvas</canvas>
+  </div>
+  <div class='level'>
+    <ul class="level-list">
+      <li class='difficulty'>
+          <label for="1">
+            <span>难度</span>
+          </label>
+      </li>
+      <li>
+        <input id='1' class='easy' type="radio" name="difficulty">
+        <label for="1">
+          <span>简单</span>
+        </label>
+      </li>
+      <li>
+        <input id='2' class='normal' type="radio" name="difficulty" checked>
+        <label for="2">
+          <span>普通</span>
+        </label>
+      </li>
+      <li>
+        <input id='3' class='difficult' type="radio" name="difficulty">
+        <label for="3">
+          <span>困难</span>
+        </label>
+      </li>
+      <li>
+        <input id='4' class='guardian' type="radio" name="difficulty">
+        <label for="4">
+          <span>地狱</span>
+        </label>
+      </li>
+    </ul>
+  </div>
+  <div class='panel'>
+    <div class="max">
+      <span class='max-text'>最高积分</span>
+      <span id='max-score'>0</span>
+    </div>
+    <div class='current'>
+      <span class='current-text'>当前积分</span>
+      <span id='current-score'>0</span>
+    </div>
+    <div class='button'>
+      <div id='start'>开始</div>
+      <div id='pause'>暂停</div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      let snake = [1, 0],                   //snake队列表示蛇身，初始节点存在但不显示
+          direction = 1,                    //1表示向右，-1表示向左，20表示向下，-20表示向上
+          food = ~~(Math.random() * 597 + 2),                           //食物的位置
+          n,                                //snake运动时的下一个节点
+          speed = 150,                      //run函数运行的间隔，也就是snake运行的速度
+          sum = 0,                          //当前游戏的累计积分
+          difficulty = 'normal',            //难度，默认‘normal’
+          clearId,                          //settimeout的id，用于暂停时清除，结束settimeout
+          flag= false,                      //标记，用于表示有咩有启动start函数
+          ctx = document.getElementById('canvas').getContext('2d'),
+          normal = document.getElementsByClassName('normal'),
+          cScore = document.getElementById('current-score'),
+          mScore = document.getElementById('max-score'),
+          sButton = document.getElementById('start')
+          pButton = document.getElementById('pause')
+
+      //让最高积分等于localstorage的数据，如果没有则为0
+      mScore.innerText = window.localStorage.max || 0
+      //全局绑定keydown事件，当触发时执行veer函数
+      document.addEventListener('keydown', veer)
+      //全局绑定click事件，当触发时执行MmdifyDifficulty函数
+      document.addEventListener('click', MmdifyDifficulty)
+      //改变snake方向
+      function veer(event) {
+        //-1左，-30上，1右，30下，如果keycode不是方向键则保持原方向
+        let drct = [-1, -30, 1, 30][event.keyCode - 37] || direction
+        let currentD = snake[0] - snake[1] 
+        //当蛇头方向和方向键方向不同并且不想反时改变方向
+        if (currentD !== drct &&　currentD !== -drct) {
+          direction = drct
+        }
+      }
+      //改变难度
+      function MmdifyDifficulty(event) {
+        console.log(event)
+        if (event.target.className === 'normal') {
+          speed = 150
+          difficulty = event.target.className
+        } else if (event.target.className === 'easy') {
+          speed = 500
+          difficulty = event.target.className
+        } else if (event.target.className === 'difficult') {
+          speed = 100
+          difficulty = event.target.className
+        } else if (event.target.className === 'guardian') {
+          speed = 50
+          difficulty = event.target.className
+        } else if (event.target.id === 'start') {
+          //点击开始时，如果暂停键显示继续则改为暂停
+          if (pButton.id === 'continue') {
+            pButton.id = 'pause'
+            pButton.innerText = '暂停'
+          }
+          flag =true
+          start()
+          draw(food, 'yellow')
+          mScore.innerText = window.localStorage.max
+        } else if (event.target.id === 'pause') {
+          //只有点击开始后才能点击暂停
+          if (flag) {
+            pause(clearId)
+            event.target.id = 'continue'
+            event.target.innerText = '继续'
+            flag =false
+          }
+        } else if (event.target.id === 'continue') {
+          goOn()
+          event.target.id = 'pause'
+          event.target.innerText = '暂停'
+        }
+      }
+      //传入坐标和颜色画出下一个节点
+      function draw(crood, color) {
+        ctx.fillStyle = color
+        ctx.fillRect(crood % 30 * 20 + 1, ~~(crood / 30) * 20 + 1, 18, 18)
+      }
+      //清除setTimeout来暂停
+      function pause(clearId) {
+        clearTimeout(clearId)
+      }
+      //继续
+      function goOn() {
+        run()
+      }
+
+      function start() {
+        //重置数据后开始
+        snake = [1, 0],       
+        direction = 1,
+        food = ~~(Math.random() * 597+2), 
+        n, 
+        sum = 0,
+        cScore.innerText = sum
+        ctx.clearRect(0, 0, 600, 400)
+        clearTimeout(clearId)
+        flag = true
+        run()
+      }
+
+      function run() {
+        //把把下个节点放入snake数组中
+        snake.unshift(n = snake[0] + direction)
+        //如果下一个节点在snake中表示碰到自己，小于0表示碰到上边，大于599表示碰到下沿，方向向左切下一个节点除30的
+        //余数为29时表示碰到左壁，应为n为下个节点，为29时snake已有节点刚刚碰到墙上，向右同理
+        if (snake.indexOf(n, 1) > 0 || n < 0 || n > 599 || direction === -1 && n % 30 === 29 ||
+          direction === 1 && n % 30 === 0
+        ) {
+          //当游戏结束时如果window.localStorage.max不存在或者当前积分高于最高积分时z最高积分为当前积分
+          if (!window.localStorage.max || (Number(window.localStorage.max) < Number(cScore.innerText))) {
+            window.localStorage.setItem('max', cScore.innerText) 
+            cScore.innerText =window.localStorage.max
+          }
+          ctx.fillStyle = "red";
+          ctx.font = "60px '微软雅黑'";
+          ctx.textAlign = "center";
+          //fillText("要添加的文字",x0坐标，y0坐标)
+          ctx.fillText("GAME OVER",300,200);
+          return false
+        }
+        draw( n, 'rgba(79,162,196,1)')
+        if (n === food) {
+          //当n=食物位置时，随机刷新食物位置，且食物位置不在snake身上，此时末尾节点不清除
+          food = ~~(Math.random() * 600)
+          while (snake.indexOf(food, 0) > 0) {
+            food = ~~(Math.random() * 600)
+          }
+          draw(food, 'yellow')
+          sum++
+          cScore.innerText = sum
+        } else {
+          //清除snake末尾节点
+          let popNum = snake.pop()
+          ctx.clearRect(popNum % 30 * 20 + 1, ~~(popNum / 30) * 20 + 1, 18, 18);
+        }
+        //记录settimeout的id
+        clearId = setTimeout(arguments.callee, speed)
+      }
+    }())
+  </script>
+</body>
+</html>
